@@ -11,7 +11,9 @@
 [Yi Xu](https://www.linkedin.com/in/yi-xu-42654823/)<sup>1</sup>  
 <sup>1</sup>OPPO US Research Center, <sup>2</sup>University at Buffalo, <sup>3</sup>ShanghaiTech University
 
-## [Project Page](https://oppo-us-research.github.io/NeuRBF-website/) | Paper
+## [Project Page](https://oppo-us-research.github.io/NeuRBF-website/) | Paper | [Video](https://youtu.be/lqZ2FPktj3g/)
+
+This repo is an official PyTorch implementation for the ICCV 2023 paper "NeuRBF: A Neural Fields Representation with Adaptive Radial Basis Functions". Our work presents a novel type of neural fields with high representation accuracy and model compactness. The repo contains the codes for image fitting, SDF fitting and neural radiance fields.
 
 # Install
 
@@ -84,3 +86,14 @@ For the Synthetic NeRF dataset, use the following command
 python main_nerf.py --config_init configs/nerf_tensorf/nerf_synthetic_init.py --config configs/nerf_tensorf/nerf_synthetic.py --data_name lego
 ```
 It will first distill scene information to initialize RBF position and shape parameters, and then train the full model. The result and tensorboard log will be located in `log/nerf_synthetic`. Change `--data_name` to run on other scenes.
+
+## Citation
+If you find our work useful, please consider citing:
+```BibTeX
+@inproceedings{chen2023neurbf,
+    title={NeuRBF: A Neural Fields Representation with Adaptive Radial Basis Functions},
+    author={Chen, Zhang and Li, Zhong and Song, Liangchen and Chen, Lele and Yu, Jingyi and Yuan, Junsong and Xu, Yi},
+    booktitle={Proceedings of the IEEE/CVF International Conference on Computer Vision},
+    year={2023}
+}
+```
