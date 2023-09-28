@@ -11,7 +11,7 @@
 [Yi Xu](https://www.linkedin.com/in/yi-xu-42654823/)<sup>1</sup>  
 <sup>1</sup>OPPO US Research Center, <sup>2</sup>University at Buffalo, <sup>3</sup>ShanghaiTech University
 
-## [Project Page](https://oppo-us-research.github.io/NeuRBF-website/) | Paper | [Video](https://youtu.be/lqZ2FPktj3g/)
+## [Project Page](https://oppo-us-research.github.io/NeuRBF-website/) | [Paper](https://arxiv.org/abs/2309.15426) | [Video](https://youtu.be/lqZ2FPktj3g/)
 
 This repo is an official PyTorch implementation for the ICCV 2023 paper "NeuRBF: A Neural Fields Representation with Adaptive Radial Basis Functions". Our work presents a novel type of neural fields with high representation accuracy and model compactness. The repo contains the codes for image fitting, SDF fitting and neural radiance fields.
 
