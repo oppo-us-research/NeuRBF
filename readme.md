@@ -91,9 +91,11 @@ It will first distill scene information to initialize RBF position and shape par
 If you find our work useful, please consider citing:
 ```BibTeX
 @inproceedings{chen2023neurbf,
-    title={NeuRBF: A Neural Fields Representation with Adaptive Radial Basis Functions},
-    author={Chen, Zhang and Li, Zhong and Song, Liangchen and Chen, Lele and Yu, Jingyi and Yuan, Junsong and Xu, Yi},
-    booktitle={Proceedings of the IEEE/CVF International Conference on Computer Vision},
-    year={2023}
+    author    = {Chen, Zhang and Li, Zhong and Song, Liangchen and Chen, Lele and Yu, Jingyi and Yuan, Junsong and Xu, Yi},
+    title     = {NeuRBF: A Neural Fields Representation with Adaptive Radial Basis Functions},
+    booktitle = {Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV)},
+    month     = {October},
+    year      = {2023},
+    pages     = {4182-4194}
 }
 ```
