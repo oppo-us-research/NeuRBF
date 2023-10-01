@@ -133,7 +133,7 @@ class IMGDataset(Dataset):
 
 
 class SDFDataset(Dataset):
-    def __init__(self, mesh, cmin, cmax, s_dims, num_samples=2**18, size=100, presample=False, is_grid=False, shuffle_mode=0, clip_sdf=None, mesh_fp='', normalize_mesh=False):
+    def __init__(self, mesh, cmin, cmax, s_dims, num_samples=2**18, size=100, presample=False, is_grid=False, shuffle_mode=0, clip_sdf=None, mesh_fp='', normalize_mesh=False, device=0):
         super().__init__()
         self.mesh = mesh.copy()
         self.s_dims = torch.tensor(s_dims)  # ... h w
@@ -141,6 +141,8 @@ class SDFDataset(Dataset):
         self.size = size
         self.presample = presample
         self.is_grid = is_grid
+        self.device = device
+        self.device_cuda = device
         self.shuffle_mode = shuffle_mode
         self.ratio = [4, 3, 1]
         self.ratio_total = sum(self.ratio)
@@ -186,6 +188,7 @@ class SDFDataset(Dataset):
         elif self.presample:
             save_fp = mesh_fp.rsplit('.', 1)[0] + '_train_points.pt'
             if os.path.exists(save_fp):
+                print('Load random points and SDF')
                 temp = torch.load(save_fp)
                 self.points = temp['points']
                 self.gt = temp['gt']
@@ -225,6 +228,7 @@ class SDFDataset(Dataset):
                     npt = points.shape[1]
                     self.gt[i:i+chunk_size, self.num_samples * self.ratio[0] // self.ratio_total:] = \
                         torch.from_numpy(-self.sdf_fn(points.reshape(-1, 3).numpy()).astype(np.float32)).reshape(-1, npt, 1)
+                print('Save random points and SDF')
                 torch.save({'points': self.points, 'gt': self.gt}, save_fp)
 
         if self.presample and self.clip_sdf is not None:
@@ -239,9 +243,9 @@ class SDFDataset(Dataset):
         
     def prepare(self):
         if hasattr(self, 'points'):
-            self.points = self.points.to(0)
+            self.points = self.points.to(self.device_cuda)
         if hasattr(self, 'gt'):
-            self.gt = self.gt.to(0)
+            self.gt = self.gt.to(self.device_cuda)
             
         if self.shuffle_mode > 0:
             self.generate_point_order(True)
@@ -255,16 +259,16 @@ class SDFDataset(Dataset):
                     pass
                 elif self.shuffle_mode == 1:
                     if self.is_grid:
-                        self.point_order = torch.randperm(self.n_point, dtype=torch.int32, device=0)
+                        self.point_order = torch.randperm(self.n_point, dtype=torch.int32, device=self.device)
                     else:
-                        self.point_order = torch.randperm(self.size, dtype=torch.int32, device=0)
+                        self.point_order = torch.randperm(self.size, dtype=torch.int32, device=self.device)
                 else:
                     raise NotImplementedError
             else:
                 if self.is_grid:
                     pass
                 else:
-                    self.point_order = torch.arange(0, self.size, dtype=torch.int32, device=0)
+                    self.point_order = torch.arange(0, self.size, dtype=torch.int32, device=self.device_cuda)
 
     def shuffle_order(self, batch_idx):
         if batch_idx == 0 and self.shuffle_mode > 0:
@@ -302,14 +306,14 @@ class SDFDataset(Dataset):
                     sdfs = sdfs.clip(-self.clip_sdf, self.clip_sdf)
             else:
                 idx_use = self.point_order[idx].to(torch.long)
-                point_idx = torch.arange(self.num_samples*idx_use, self.num_samples*(idx_use+1), device=0)
+                point_idx = torch.arange(self.num_samples*idx_use, self.num_samples*(idx_use+1), device=self.points.device)
                 points = self.points[idx_use]
                 sdfs = self.gt[idx_use]
         else:
             if self.shuffle_mode > 0:
                 point_idx = self.point_order[self.num_samples*idx:self.num_samples*(idx+1)].to(torch.long)
             else:
-                point_idx = torch.arange(self.num_samples*idx, self.num_samples*(idx+1), device=0)
+                point_idx = torch.arange(self.num_samples*idx, self.num_samples*(idx+1), device=self.points.device)
             points = self.points[point_idx]
             sdfs = self.gt[point_idx]
 

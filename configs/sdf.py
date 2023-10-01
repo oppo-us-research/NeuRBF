@@ -27,6 +27,8 @@ parser = ArgumentParser()
 parser.add_argument("--config", type=str)
 parser.add_argument("--path", type=str, default='./data/sdf/armadillo_nrml.obj')
 parser.add_argument("--alias", type=str)
+parser.add_argument("--ds_device", type=str, default='auto')
+parser.add_argument("--log2_hashmap_size_ref", type=int, default=15)
 config = parser.parse_args()
 config.config_fp = __file__
 
@@ -45,8 +47,6 @@ config.train_epoch_size = 1000
 config.val_resolution = 1024
 config.clip_sdf = None
 config.record_training = False
-
-config.log2_hashmap_size_ref = 15
 
 config.pe_lc0_freq = [30, 300]
 config.pe_lc0_rbf_freq = [2**0, 2**3]

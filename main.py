@@ -112,7 +112,12 @@ def main(opt):
         raise NotImplementedError
     
     print('Prepare dataset and dataloader')
-    device = 'cpu' if n_train_point > int(5e8) else 0
+    if opt.ds_device == 'auto':
+        device = 'cpu' if n_train_point > int(5e8) else 0
+    elif opt.ds_device == 'cpu':
+        device = 'cpu'
+    else:
+        device = int(opt.ds_device)
     if opt.task == 'image':
         from img_sdf.provider import IMGDataset
         train_dataset = IMGDataset(gt, opt.cmin, opt.cmax, s_dims, num_samples=opt.train_num_samples, ns_per_block=1, 
@@ -125,9 +130,9 @@ def main(opt):
         from img_sdf.provider import SDFDataset
         train_dataset = SDFDataset(gt_mesh, opt.cmin, opt.cmax, s_dims, num_samples=opt.train_num_samples, 
             size=opt.train_epoch_size, presample=opt.train_presample, shuffle_mode=opt.train_shuffle_mode, 
-            clip_sdf=opt.clip_sdf, mesh_fp=opt.path)
+            clip_sdf=opt.clip_sdf, mesh_fp=opt.path, device=device)
         valid_dataset = SDFDataset(gt_mesh, opt.cmin, opt.cmax, s_dims, num_samples=2**18, is_grid=True,
-            clip_sdf=opt.clip_sdf, mesh_fp=opt.path)
+            clip_sdf=opt.clip_sdf, mesh_fp=opt.path, device=device)
         opt.train_val_same_points = False
         train_pin_memory = True if not train_dataset.presample else False
         valid_pin_memory = True if not valid_dataset.presample else False

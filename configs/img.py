@@ -27,6 +27,8 @@ parser = ArgumentParser()
 parser.add_argument("--config", type=str)
 parser.add_argument("--path", type=str, default='./data/img/pluto.png')
 parser.add_argument("--alias", type=str)
+parser.add_argument("--ds_device", type=str, default='auto')
+parser.add_argument("--log2_hashmap_size_ref", type=int, default=24)
 config = parser.parse_args()
 config.config_fp = __file__
 
@@ -41,8 +43,6 @@ config.cfactor = 128
 config.train_shuffle_mode = 2
 config.train_num_samples = 2**18
 config.record_training = False
-
-config.log2_hashmap_size_ref = 24
 
 config.pe_lc0_freq = [1e1, 1e2]
 config.pe_lc0_rbf_freq = [2**-3, 2**12]

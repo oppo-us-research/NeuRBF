@@ -31,6 +31,7 @@ def config_parser(cmd=None, mode='config'):
 
     # loader options
     parser.add_argument("--batch_size", type=int, default=4096)
+    parser.add_argument("--batch_size_init", type=int, default=None)
     parser.add_argument("--n_iters", type=int, default=30000)
 
     parser.add_argument('--dataset_name', type=str, default='blender')
@@ -152,7 +153,8 @@ def config_parser(cmd=None, mode='config'):
 
         # Override from config into argparse
         for k, v in config.items():
-            if k in ['data_name'] and getattr(args, k) is not None:
+            # Keep certain args if they are set in cli
+            if k in ['data_name', 'batch_size_init'] and getattr(args, k) is not None:
                 continue
             setattr(args, k, v)
 

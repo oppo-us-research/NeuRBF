@@ -52,7 +52,9 @@ Download an example [pluto image](https://solarsystem.nasa.gov/resources/933/tru
 ```bash
 python main.py --config configs/img.py --path ./data/img/pluto.png --alias pluto
 ```
-The result and tensorboard log will be located in `log/img`.
+The result and tensorboard log will be located in `log/img`. To adjust model size, you can specify the value of `--log2_hashmap_size_ref` argument.
+
+NOTE: To reduce GPU memory usage, you can add `--ds_device cpu` to the above command. This will put some data on CPU instead of GPU, but will also make training slower.
 
 ### Fit all images in the DIV2K dataset
 Download the [validation set](http://data.vision.ee.ethz.ch/cvl/DIV2K/DIV2K_valid_HR.zip) of the [DIV2K dataset](https://data.vision.ee.ethz.ch/cvl/DIV2K/) and put it in `data/img/div2k`. The path to each image should be `data/img/div2k/DIV2K_valid_HR/xxxx.png`. Then run
@@ -72,7 +74,9 @@ Then run
 ```bash
 python main.py --config configs/sdf.py --path ./data/sdf/armadillo_nrml.obj --alias armadillo
 ```
-The result and tensorboard log will be located in `log/sdf`.
+The result and tensorboard log will be located in `log/sdf`. To adjust model size, you can specify the value of `--log2_hashmap_size_ref` argument.
+
+NOTE: To reduce GPU memory usage, you can similarly add `--ds_device cpu` to the above command.
 
 ## NeRF
 
@@ -86,6 +90,8 @@ For the Synthetic NeRF dataset, use the following command
 python main_nerf.py --config_init configs/nerf_tensorf/nerf_synthetic_init.py --config configs/nerf_tensorf/nerf_synthetic.py --data_name lego
 ```
 It will first distill scene information to initialize RBF position and shape parameters, and then train the full model. The result and tensorboard log will be located in `log/nerf_synthetic`. Change `--data_name` to run on other scenes.
+
+NOTE: To reduce GPU memory usage, you can add `--batch_size_init 2048` (tested working on RTX 3090 24G). The number `2048` can be further lowered if needed.
 
 ## Citation
 If you find our work useful, please consider citing:
