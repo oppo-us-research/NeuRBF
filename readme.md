@@ -42,6 +42,7 @@ cd ../../../
 ### Tested environments
 * Ubuntu 20.04 with PyTorch 1.13.0 & CUDA 11.6 on RTX A6000.
 * Ubuntu 20.04 with PyTorch 2.0.1 & CUDA 11.7 on RTX A6000.
+* Ubuntu 18.04 with PyTorch 2.0.1 & CUDA 11.7 on RTX 3090.
 
 # Usage
 
