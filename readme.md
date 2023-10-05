@@ -17,6 +17,12 @@ This repo is an official PyTorch implementation for the ICCV 2023 paper "NeuRBF:
 
 # Install
 
+### Clone repository
+```bash
+git clone https://github.com/oppo-us-research/NeuRBF.git
+cd NeuRBF
+```
+
 ### Install conda environment
 ```bash
 conda create -n neurbf python=3.9 -y
