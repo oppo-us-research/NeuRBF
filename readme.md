@@ -19,6 +19,12 @@ This repo is an official PyTorch implementation for the ICCV 2023 paper "NeuRBF:
 
 # Install
 
+### Clone repository
+```bash
+git clone https://github.com/oppo-us-research/NeuRBF.git
+cd NeuRBF
+```
+
 ### Install conda environment
 ```bash
 # Create conda environment
@@ -50,8 +56,9 @@ cd ../../../
 ```
 
 ### Tested environments
-* Ubuntu 20.04 with PyTorch 1.13.0 & CUDA 11.6 on RTX A6000.
-* Ubuntu 20.04 with PyTorch 2.0.1 & CUDA 11.7 on RTX A6000.
+* Ubuntu 18.04 with PyTorch 1.13.0 & CUDA 11.6 on RTX A6000.
+* Ubuntu 18.04 with PyTorch 2.0.1 & CUDA 11.7 on RTX A6000.
+* Ubuntu 18.04 with PyTorch 2.0.1 & CUDA 11.7 on RTX 3090.
 
 # Usage
 

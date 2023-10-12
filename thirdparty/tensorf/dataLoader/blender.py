@@ -74,9 +74,9 @@ class BlenderDataset(Dataset):
             
             if self.downsample!=1.0:
                 img = img.resize(self.img_wh, Image.LANCZOS)
-            img = self.transform(img)  # (4, h, w)
-            img = img.view(4, -1).permute(1, 0)  # (h*w, 4) RGBA
-            img = img[:, :3] * img[:, -1:] + (1 - img[:, -1:])  # blend A to RGB
+            img = self.transform(img)  # (c, h, w)
+            img = img.view(img.shape[0], -1).permute(1, 0)  # (h*w, c) RGBA
+            img = img[:, :3] * img[:, -1:] + (1 - img[:, -1:]) if img.shape[-1] == 4 else img  # blend A to RGB
             self.all_rgbs += [img]
 
 
