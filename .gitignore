@@ -3,5 +3,7 @@ log/
 data/*
 data
 init_data*/*
+*temp*
+
 thirdparty/torch_ngp/*/*.egg-info/
 thirdparty/torch_ngp/*/build/

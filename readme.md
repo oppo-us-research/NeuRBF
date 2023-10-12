@@ -15,24 +15,34 @@
 
 This repo is an official PyTorch implementation for the ICCV 2023 paper "NeuRBF: A Neural Fields Representation with Adaptive Radial Basis Functions". Our work presents a novel type of neural fields with high representation accuracy and model compactness. The repo contains the codes for image fitting, SDF fitting and neural radiance fields.
 
+<img src="assets/pipeline.png" width="100%"/>
+
 # Install
 
 ### Install conda environment
 ```bash
+# Create conda environment
 conda create -n neurbf python=3.9 -y
 conda activate neurbf
 
+# Install CuPy
 pip install cupy-cuda117
 python -m cupyx.tools.install_library --cuda 11.7 --library cutensor
 python -m cupyx.tools.install_library --cuda 11.7 --library cudnn
 python -m cupyx.tools.install_library --cuda 11.7 --library nccl
 
+# Install PyTorch
 pip install torch torchvision --extra-index-url https://download.pytorch.org/whl/cu117
 
+# For image/SDF fitting and NeRF task on Synthetic NeRF dataset
 pip install einops matplotlib kornia imageio imageio-ffmpeg opencv-python pysdf PyMCubes trimesh plotly scipy GPUtil scikit-image scikit-learn pykdtree commentjson tqdm configargparse lpips tensorboard torch-ema ninja tensorboardX numpy pandas rich packaging scipy torchmetrics jax pillow plyfile omegaconf
+
+# For NeRF task on LLFF dataset
+pip install jax tqdm pillow opencv-python pandas lpips imageio torchmetrics scikit-image tensorboard matplotlib
+pip install git+https://github.com/NVlabs/tiny-cuda-nn/#subdirectory=bindings/torch
 ```
 
-### Build [torch-ngp](https://github.com/ashawkey/torch-ngp/tree/main) extension
+### Build [torch-ngp](https://github.com/ashawkey/torch-ngp/tree/main) extension (for image/SDF fitting)
 ```bash
 cd thirdparty/torch_ngp/gridencoder
 pip install .
@@ -56,6 +66,8 @@ The result and tensorboard log will be located in `log/img`. To adjust model siz
 
 NOTE: To reduce GPU memory usage, you can add `--ds_device cpu` to the above command. This will put some data on CPU instead of GPU, but will also make training slower.
 
+<img src="assets/img_pluto.png" width="35%"/>
+
 ### Fit all images in the DIV2K dataset
 Download the [validation set](http://data.vision.ee.ethz.ch/cvl/DIV2K/DIV2K_valid_HR.zip) of the [DIV2K dataset](https://data.vision.ee.ethz.ch/cvl/DIV2K/) and put it in `data/img/div2k`. The path to each image should be `data/img/div2k/DIV2K_valid_HR/xxxx.png`. Then run
 ```bash
@@ -78,20 +90,43 @@ The result and tensorboard log will be located in `log/sdf`. To adjust model siz
 
 NOTE: To reduce GPU memory usage, you can similarly add `--ds_device cpu` to the above command.
 
+<img src="assets/sdf_armadillo.png" width="35%"/>
+
 ## NeRF
 
 ### Dataset
 * [Synthetic NeRF](https://drive.google.com/drive/folders/1JDdLGDruGNXWnM1eqY1FNL9PlStjaKWi)
+* [LLFF](https://drive.google.com/drive/folders/14boI-o5hGO9srnWaaogTU5_ji7wkX2S7)
 
+### Run on Synthetic NeRF Dataset
 Download the dataset and unzip to `data`. For example, the path to the lego scene should be `data/nerf_synthetic/lego`. 
 
-For the Synthetic NeRF dataset, use the following command
+For training, use the following command
 ```bash
 python main_nerf.py --config_init configs/nerf_tensorf/nerf_synthetic_init.py --config configs/nerf_tensorf/nerf_synthetic.py --data_name lego
 ```
 It will first distill scene information to initialize RBF position and shape parameters, and then train the full model. The result and tensorboard log will be located in `log/nerf_synthetic`. Change `--data_name` to run on other scenes.
 
 NOTE: To reduce GPU memory usage, you can add `--batch_size_init 2048` (tested working on RTX 3090 24G). The number `2048` can be further lowered if needed.
+
+<img src="assets/nerf_syn_lego.png" width="35%"/>
+
+### Run on LLFF Dataset
+Download the dataset and unzip to `data`. For example, the path to the room scene should be `data/nerf_llff_data/room`. 
+
+For training, use the following command
+```bash
+python main_nerf_kplanes.py --config_init configs/nerf_kplanes/llff_init.py --config configs/nerf_kplanes/llff.py --data_name room
+```
+It will first distill scene information to initialize RBF position and shape parameters, and then train the full model. The result and tensorboard log will be located in `log/llff`. Change `--data_name` to run on other scenes.
+
+To render a spiral-path video using a trained model, run
+```bash
+python main_nerf_kplanes.py --config configs/nerf_kplanes/llff.py --log-dir [model_folder] --render-only
+```
+where `[model_folder]` is the path to the folder that contains the trained model.
+
+<img src="assets/nerf_llff_room.png" width="50%"/>
 
 ## Citation
 If you find our work useful, please consider citing:
