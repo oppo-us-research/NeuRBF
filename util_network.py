@@ -20,6 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import os
 import torch
 from functools import partial
 import time
@@ -544,14 +545,17 @@ def init_nerf_kc_i(n_kernel, rbf_type, points, density, features, cmin, cmax, s_
         if kc_init_fn is not None:
             points = points.cpu().reshape(-1, points.shape[-1])
 
-            alphas = 1 - torch.exp(-density)
+            if features is None:
+                points_weight = density
+            else:
+                alphas = 1 - torch.exp(-density)
 
-            features = (features - features.min()) / (features.max() - features.min())
-            features = features.reshape(*s_dims.tolist(), -1)
-            features_grad = kornia.filters.SpatialGradient3d(mode='diff', order=1)(features.movedim(-1, 0)[None])[0]  # [c 3 d h w]
-            features_grad = features_grad.movedim((0, 1), (-2, -1)).pow(2).sum(dim=[-2, -1]).sqrt()[..., None]  # [d h w 1]
+                features = (features - features.min()) / (features.max() - features.min())
+                features = features.reshape(*s_dims.tolist(), -1)
+                features_grad = kornia.filters.SpatialGradient3d(mode='diff', order=1)(features.movedim(-1, 0)[None])[0]  # [c 3 d h w]
+                features_grad = features_grad.movedim((0, 1), (-2, -1)).pow(2).sum(dim=[-2, -1]).sqrt()[..., None]  # [d h w 1]
 
-            points_weight = alphas * features_grad.reshape(-1, 1)
+                points_weight = alphas * features_grad.reshape(-1, 1)
 
             kc, out_other = kc_init_fn(n_kernel, points=points, points_weight=points_weight, 
                 cmin=cmin, cmax=cmax, s_dims=s_dims, device=device, rbf_type=rbf_type)
@@ -569,14 +573,17 @@ def init_nerf_ks_i(rbf_type, points, density, features, cmin, cmax, s_dims, kw_i
         if kw_init_fn is not None:
             points = points.cpu().reshape(-1, points.shape[-1])
 
-            alphas = 1 - torch.exp(-density)
+            if features is None:
+                points_weight = density
+            else:
+                alphas = 1 - torch.exp(-density)
 
-            features = (features - features.min()) / (features.max() - features.min())
-            features = features.reshape(*s_dims.tolist(), -1)
-            features_grad = kornia.filters.SpatialGradient3d(mode='diff', order=1)(features.movedim(-1, 0)[None])[0]  # [c 3 d h w]
-            features_grad = features_grad.movedim((0, 1), (-2, -1)).pow(2).sum(dim=[-2, -1]).sqrt()[..., None]  # [d h w 1]
+                features = (features - features.min()) / (features.max() - features.min())
+                features = features.reshape(*s_dims.tolist(), -1)
+                features_grad = kornia.filters.SpatialGradient3d(mode='diff', order=1)(features.movedim(-1, 0)[None])[0]  # [c 3 d h w]
+                features_grad = features_grad.movedim((0, 1), (-2, -1)).pow(2).sum(dim=[-2, -1]).sqrt()[..., None]  # [d h w 1]
 
-            points_weight = alphas * features_grad.reshape(-1, 1)
+                points_weight = alphas * features_grad.reshape(-1, 1)
 
             kw_sq = kw_init_fn(kc, in_other=out_other, points=points, points_weight=points_weight, 
                 cmin=cmin, cmax=cmax, s_dims=s_dims, device=device, rbf_type=rbf_type)
@@ -595,8 +602,8 @@ def init_nerf_rbf_params(model, points, density, features, kc_init_config, kw_in
 
             print(f'Initializing kc{k}...')
             t = time.time()
-            kc, out_other = init_nerf_kc_i(n_kernel, model.rbf_type, points, density, features, model.cmin, model.cmax, 
-                model.s_dims, kc_init_config[k], device)
+            kc, out_other = init_nerf_kc_i(n_kernel, model.rbf_type, points, density, features, model.cmin, 
+                                           model.cmax, model.s_dims, kc_init_config[k], device)
             if kc is not None:
                 getattr(model, f'kc{k}').weight.data = kc
                 print(f'Init kc{k}: {time.time() - t}')
@@ -605,8 +612,8 @@ def init_nerf_rbf_params(model, points, density, features, kc_init_config, kw_in
 
             print(f'Initializing ks{k}...')
             t = time.time()
-            ks = init_nerf_ks_i(model.rbf_type, points, density, features, model.cmin, model.cmax, model.s_dims, 
-                kw_init_config[k], kc, out_other, device)
+            ks = init_nerf_ks_i(model.rbf_type, points, density, features, model.cmin, 
+                                model.cmax, model.s_dims, kw_init_config[k], kc, out_other, device)
             if ks is not None:
                 getattr(model, f'ks{k}').weight.data = ks.reshape(n_kernel, -1)
                 print(f'Init ks{k}: {time.time() - t}')

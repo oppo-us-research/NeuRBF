@@ -32,13 +32,13 @@ conda create -n neurbf python=3.9 -y
 conda activate neurbf
 
 # Install CuPy
-pip install cupy-cuda117
-python -m cupyx.tools.install_library --cuda 11.7 --library cutensor
-python -m cupyx.tools.install_library --cuda 11.7 --library cudnn
-python -m cupyx.tools.install_library --cuda 11.7 --library nccl
+pip install cupy-cuda11x
+python -m cupyx.tools.install_library --cuda 11.x --library cutensor
+python -m cupyx.tools.install_library --cuda 11.x --library cudnn
+python -m cupyx.tools.install_library --cuda 11.x --library nccl
 
 # Install PyTorch
-pip install torch torchvision --extra-index-url https://download.pytorch.org/whl/cu117
+pip install torch==2.0.1+cu117 torchvision==0.15.2+cu117 --index-url https://download.pytorch.org/whl/cu117
 
 # For image/SDF fitting and NeRF task on Synthetic NeRF dataset
 pip install einops matplotlib kornia imageio imageio-ffmpeg opencv-python pysdf PyMCubes trimesh plotly scipy GPUtil scikit-image scikit-learn pykdtree commentjson tqdm configargparse lpips tensorboard torch-ema ninja tensorboardX numpy pandas rich packaging scipy torchmetrics jax pillow plyfile omegaconf

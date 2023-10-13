@@ -417,8 +417,11 @@ if __name__ == '__main__':
             args = config_parser(mode='config_init')
             pprint.pprint(args)
             print(args.expname)
-            init_data = reconstruction(args)
-            torch.cuda.empty_cache()
+            if os.path.exists(args.rbf_config.init_data_fp):
+                init_data = torch.load(args.rbf_config.init_data_fp)
+            else:
+                init_data = reconstruction(args)
+                torch.cuda.empty_cache()
 
         print('Training...')
         args = config_parser()

@@ -6,6 +6,7 @@ import torch.nn as nn
 import mcubes
 import trimesh
 from pykdtree.kdtree import KDTree
+import kornia
 
 from thirdparty.tensorf.models.tensorBase import *
 import thirdparty.tensorf.utils as utils
@@ -487,8 +488,7 @@ class TensorVMSplitRBF(TensorBase):
                 sl = aabb_size.prod() ** (1/3) / 512
                 self.s_dims = (aabb_size / sl).round().long().flip(-1)  # ... h w
             else:
-                density_all = init_data['density'].view(-1, 1)
-                features_all = init_data['features']
+                points_weight = init_data['points_weight']
                 self.aabb_rbf = init_data['aabb'].to(self.device)
                 self.s_dims = init_data['s_dims']
                 del init_data
@@ -512,9 +512,20 @@ class TensorVMSplitRBF(TensorBase):
                     shuffle = torch.randperm(features_all.shape[-1]).long()[:27]
                     features_all = features_all[:, shuffle]
                 print('Get density and features at grid points:', time.time() - t)
-                density_all, features_all = density_all.cpu(), features_all.cpu()
-                init_data = {'density': density_all, 'features': features_all, 
-                            'aabb': self.aabb_rbf.cpu(), 's_dims': self.s_dims.cpu()}
+                density, features = density_all.cpu().view(-1, 1), features_all.cpu()
+                del density_all, features_all
+
+                # Compute point weight
+                density = 1 - torch.exp(-density)
+                features = (features - features.min()) / (features.max() - features.min())
+                features = features.reshape(*self.s_dims.tolist(), -1)
+                features = kornia.filters.SpatialGradient3d(mode='diff', order=1)(features.movedim(-1, 0)[None])[0]  # [c 3 d h w]
+                features = features.movedim((0, 1), (-2, -1)).pow(2).sum(dim=[-2, -1]).sqrt()[..., None]  # [d h w 1]
+                points_weight = density * features.reshape(-1, 1)
+                del density, features
+
+                init_data = {'points_weight': points_weight, 
+                             'aabb': self.aabb_rbf.cpu(), 's_dims': self.s_dims.cpu()}
 
                 # # Save init data
                 # os.makedirs(os.path.dirname(self.init_data_fp), exist_ok=True)
@@ -528,6 +539,7 @@ class TensorVMSplitRBF(TensorBase):
                 torch.cuda.empty_cache()
                 return init_data
         else:
+            raise NotImplementedError
             t = time.time()
             pts, _, _ = util_misc.get_grid_points(self.s_dims.tolist(), align_corners=True, 
                 vmin=self.cmin.tolist(), vmax=self.cmax.tolist(), device=0)
@@ -563,9 +575,9 @@ class TensorVMSplitRBF(TensorBase):
             del init_data
 
         # Init rbf parameters
-        util_network.init_nerf_rbf_params(self, pts, density_all, features_all, self.kc_init_config, 
-                                     self.kw_init_config, device=0)
-        del density_all, features_all
+        util_network.init_nerf_rbf_params(self, pts, points_weight, None, self.kc_init_config, 
+                                          self.kw_init_config, device=0)
+        del points_weight
         torch.cuda.empty_cache()
 
         # Build kd tree
@@ -650,6 +662,7 @@ class TensorVMSplitRBF(TensorBase):
             level_type = self.level_types[idx_level]
             res_target_i = np.round(res_target / down_factor**idx_level).astype(np.int64)
             self.gridSizes[idx_level] = res_target_i
+            res_target_i = res_target_i.tolist()
             if level_type == 'vm':
                 for i in range(len(self.vecMode)):
                     vec_id = self.vecMode[i]

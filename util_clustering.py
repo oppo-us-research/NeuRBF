@@ -20,6 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import os
 import numpy as np
 import cupy as cp
 from pykdtree.kdtree import KDTree
@@ -167,8 +168,8 @@ class KMeans():
                 sample_weight_cp, chunk_size=int(1e8 / X_cp.shape[-1]))
             centers_cp[count==0] = centers_old_cp[count==0]
             self.centers = cp.asnumpy(centers_cp).astype(np.float32)
-            if cp.all(centers_old_cp == centers_cp):
-                break
+            # if cp.all(centers_old_cp == centers_cp):
+            #     break
         self.kdtree = KDTree(self.centers)
         _, self.labels = query_chunked(self.kdtree, X, k=1, sqr_dists=True, chunk_size=int(2e8), return_dist=False)
 
