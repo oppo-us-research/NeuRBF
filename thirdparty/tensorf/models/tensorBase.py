@@ -499,7 +499,7 @@ class TensorBase(torch.nn.Module):
 
 
     @torch.no_grad()
-    def get_pts_data(self, pts, normalize_pts=False):
+    def get_pts_data(self, pts, normalize_pts=False, channels=27):
         if normalize_pts:
             pts = (pts - self.aabb_rbf[0]) * 2.0 / (self.aabb_rbf[1] - self.aabb_rbf[0]) - 1
 
@@ -530,12 +530,18 @@ class TensorBase(torch.nn.Module):
             # Get appearance features
             if pts_valid.any():
                 app_features[pts_valid] = self.compute_appfeature(pts_i[pts_valid], others)
-                
+
+            if app_features.shape[-1] > channels:
+                if i == 0:
+                    channels_keep = torch.randperm(app_features.shape[-1]).long()[:27]
+                app_features = app_features[..., channels_keep]
+
             density_all.append(sigma.cpu())
             features_all.append(app_features.cpu())
+            del sigma, app_features
+
         density_all = torch.cat(density_all, 0)
         features_all = torch.cat(features_all, 0)
-        del sigma, app_features
         torch.cuda.empty_cache()
 
         return density_all, features_all

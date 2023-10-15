@@ -7,3 +7,4 @@ init_data*/*
 
 thirdparty/torch_ngp/*/*.egg-info/
 thirdparty/torch_ngp/*/build/
+thirdparty/torch_ngp/*/*.pyd

@@ -123,13 +123,11 @@ def kw_init_v3(kc, points, points_weight, s_dims, device, alpha, points_sampling
     del points_offset
 
     with cp.cuda.Device(device):
-        labels = cp.asarray(labels)
-        points_weight = cp.asarray(points_weight)
         kw_sq = torch.zeros([kc.shape[0], *points_data.shape[1:]], dtype=torch.float32, device=points.device)
         for i in range(points_data.shape[1]):
             for j in range(points_data.shape[2]):
-                kw_sq_ij, count = util_clustering.reduce_within_clusters_chunked(cp.asarray(points_data[:, i, j]), 
-                    kc.shape[0], labels, points_weight, chunk_size=int(1e8))
+                kw_sq_ij, count = util_clustering.reduce_within_clusters_chunked(points_data[:, i, j], 
+                    kc.shape[0], labels, points_weight, chunk_size=int(3e6))
                 kw_sq_ij /= alpha
                 if rbf_type.endswith('_a') or rbf_type.endswith('_f'):
                     if i == j:

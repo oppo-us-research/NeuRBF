@@ -1,7 +1,6 @@
 from typing import Tuple, Optional, Dict, Any, List
 import logging as log
 import os
-import resource
 
 import torch
 from torch.multiprocessing import Pool
@@ -13,6 +12,8 @@ from thirdparty.kplanes.utils.my_tqdm import tqdm
 
 pil2tensor = torchvision.transforms.ToTensor()
 # increase ulimit -n (number of open files) otherwise parallel loading might fail
+# For windows, need to comment out the following 3 lines
+import resource
 rlimit = resource.getrlimit(resource.RLIMIT_NOFILE)
 resource.setrlimit(resource.RLIMIT_NOFILE, (16192, rlimit[1]))
 

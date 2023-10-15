@@ -507,22 +507,24 @@ class TensorVMSplitRBF(TensorBase):
             # Get density and features at these points
             if self.get_init_data:
                 t = time.time()
-                density_all, features_all = self.get_pts_data(pts, normalize_pts=True)
-                if features_all.shape[-1] > 27:
-                    shuffle = torch.randperm(features_all.shape[-1]).long()[:27]
-                    features_all = features_all[:, shuffle]
+                density_all, features_all = self.get_pts_data(pts, normalize_pts=True, channels=27)
                 print('Get density and features at grid points:', time.time() - t)
-                density, features = density_all.cpu().view(-1, 1), features_all.cpu()
+                density, features = density_all.cpu(), features_all.cpu()
                 del density_all, features_all
+                density = density.view(-1, 1)
 
                 # Compute point weight
                 density = 1 - torch.exp(-density)
-                features = (features - features.min()) / (features.max() - features.min())
-                features = features.reshape(*self.s_dims.tolist(), -1)
-                features = kornia.filters.SpatialGradient3d(mode='diff', order=1)(features.movedim(-1, 0)[None])[0]  # [c 3 d h w]
-                features = features.movedim((0, 1), (-2, -1)).pow(2).sum(dim=[-2, -1]).sqrt()[..., None]  # [d h w 1]
-                points_weight = density * features.reshape(-1, 1)
-                del density, features
+                features -= features.min()
+                features *= 1 / (features.max() - features.min())
+                features = features.reshape(*self.s_dims.tolist(), -1).movedim(-1, 0)[None]  # [1 c d h w]
+                features_grad = features.new_zeros([*self.s_dims.tolist()])  # [d h w]
+                for i in range(features.shape[1]):
+                    features_grad += kornia.filters.SpatialGradient3d(mode='diff', order=1)(features[:, i:i+1])[0].pow(2).sum(dim=[0, 1])
+                del features
+                features_grad = features_grad.sqrt()[..., None]  # [d h w 1]
+                points_weight = density * features_grad.reshape(-1, 1)
+                del density
 
                 init_data = {'points_weight': points_weight, 
                              'aabb': self.aabb_rbf.cpu(), 's_dims': self.s_dims.cpu()}

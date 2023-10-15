@@ -18,6 +18,7 @@ from thirdparty.kplanes.raymarching.spatial_distortions import SpatialDistortion
 import mcubes
 import trimesh
 from pykdtree.kdtree import KDTree
+import kornia
 import util_misc
 import util_network
 import util_init
@@ -442,8 +443,24 @@ class KPlaneRBFField(nn.Module):
                 del density, features
                 torch.cuda.empty_cache()
             print('Get density and features at grid points:', time.time() - t)
-            density_all, features_all = density_all.cpu(), features_all.cpu()
-            init_data = {'density': density_all, 'features': features_all}
+            density, features = density_all.cpu(), features_all.cpu()
+            del density_all, features_all
+            features = features.to(torch.float32)
+
+            # Compute point weight
+            density = 1 - torch.exp(-density)
+            features -= features.min()
+            features *= 1 / (features.max() - features.min())
+            features = features.reshape(*self.s_dims.tolist(), -1).movedim(-1, 0)[None]  # [1 c d h w]
+            features_grad = features.new_zeros([*self.s_dims.tolist()])  # [d h w]
+            for i in range(features.shape[1]):
+                features_grad += kornia.filters.SpatialGradient3d(mode='diff', order=1)(features[:, i:i+1])[0].pow(2).sum(dim=[0, 1])
+            del features
+            features_grad = features_grad.sqrt()[..., None]  # [d h w 1]
+            points_weight = density * features_grad.reshape(-1, 1)
+            del density
+
+            init_data = {'points_weight': points_weight}
 
             # # Save init data
             # os.makedirs(os.path.dirname(self.init_data_fp), exist_ok=True)
@@ -455,14 +472,13 @@ class KPlaneRBFField(nn.Module):
             torch.cuda.empty_cache()
             return init_data
 
-        density_all = init_data['density']
-        features_all = init_data['features'].to(torch.float32)
+        points_weight = init_data['points_weight']
         del init_data
 
         # Init rbf parameters
-        util_network.init_nerf_rbf_params(self, pts, density_all, features_all, self.kc_init_config, 
+        util_network.init_nerf_rbf_params(self, pts, points_weight, None, self.kc_init_config, 
                                           self.kw_init_config, device=0)
-        del density_all, features_all
+        del points_weight
         torch.cuda.empty_cache()
 
         # Build kd tree

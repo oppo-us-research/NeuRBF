@@ -164,8 +164,8 @@ class KMeans():
             centers_old_cp = centers_cp
             self.kdtree = KDTree(self.centers)
             _, self.labels = query_chunked(self.kdtree, X, k=1, sqr_dists=True, chunk_size=int(2e8), return_dist=False)
-            centers_cp, count = reduce_within_clusters_chunked(X_cp, self.n_clusters, cp.asarray(self.labels), 
-                sample_weight_cp, chunk_size=int(1e8 / X_cp.shape[-1]))
+            centers_cp, count = reduce_within_clusters_chunked(X_cp, self.n_clusters, self.labels, 
+                sample_weight_cp, chunk_size=int(3e6 / X_cp.shape[-1]))
             centers_cp[count==0] = centers_old_cp[count==0]
             self.centers = cp.asnumpy(centers_cp).astype(np.float32)
             # if cp.all(centers_old_cp == centers_cp):
@@ -201,6 +201,13 @@ def reduce_within_clusters(X, n_clusters, labels, sample_weight=None, reduce_wei
     labels: [p], cupy int
     sample_weight: [p], cupy float
     '''
+    if type(X) is not cp.ndarray:
+        X = cp.asarray(X)
+    if type(labels) is not cp.ndarray:
+        labels = cp.asarray(labels)
+    if sample_weight is not None and type(sample_weight) is not cp.ndarray:
+        sample_weight = cp.asarray(sample_weight)
+
     X = X.astype(dtype=cp.float64, copy=False)
     sample_weight = sample_weight.astype(dtype=cp.float64, copy=False)
 

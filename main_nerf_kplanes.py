@@ -124,6 +124,9 @@ def main(args, init_data=None):
     if 'rbf_config' in config:
         if 'init_data_fp' in config['rbf_config']:
             config['rbf_config']['init_data_fp'] = config['rbf_config']['init_data_fp'].replace('data_name', config['data_fn'])
+            if config['rbf_config']['get_init_data'] and os.path.exists(config['rbf_config']['init_data_fp']):
+                init_data = torch.load(config['rbf_config']['init_data_fp'])
+                return init_data
 
     # Add version id
     exp_list = glob.glob(f'{config["logdir"]}/{config["expname"]}-v*'.replace('[', '[[]'))
