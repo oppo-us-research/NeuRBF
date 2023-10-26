@@ -273,6 +273,11 @@ class TensorBase(torch.nn.Module):
             length = np.prod(ckpt['alphaMask.shape'])
             alpha_volume = torch.from_numpy(np.unpackbits(ckpt['alphaMask.mask'])[:length].reshape(ckpt['alphaMask.shape']))
             self.alphaMask = AlphaGridMask(self.device, ckpt['alphaMask.aabb'].to(self.device), alpha_volume.float().to(self.device))
+        for k in ['density_plane', 'density_line', 'app_plane', 'app_line']:
+            v = getattr(self, k)
+            for i in range(len(v)):
+                if v[i].shape != ckpt['state_dict'][f'{k}.{i}'].shape:
+                    v[i].data = torch.ones_like(ckpt['state_dict'][f'{k}.{i}'])
         self.load_state_dict(ckpt['state_dict'])
 
 
@@ -411,7 +416,6 @@ class TensorBase(torch.nn.Module):
             sigma_feature = self.compute_densityfeature(xyz_sampled, others)
             validsigma = self.feature2density(sigma_feature)
             sigma[alpha_mask] = validsigma
-
 
         alpha = 1 - torch.exp(-sigma*length).view(xyz_locs.shape[:-1])
 

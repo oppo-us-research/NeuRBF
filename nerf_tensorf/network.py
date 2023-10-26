@@ -20,6 +20,7 @@ class TensorVMSplitRBF(TensorBase):
     Modified from https://github.com/apchenstu/TensoRF/blob/4ec894dc1341a2201fe13ae428631b58458f105d/models/tensoRF.py#L139
     """
     def __init__(self, aabb, gridSize, device, **kargs):
+        self.kargs = kargs
         self.n_level = kargs['args'].n_level
         self.level_types = list(kargs['args'].level_types)
         if len(self.level_types) == 1:
@@ -169,6 +170,15 @@ class TensorVMSplitRBF(TensorBase):
         # Fix params
         util_network.fix_params(self, fix_params)
 
+
+    def get_kwargs(self):
+        kwargs = {
+            'aabb': self.aabb,
+            'gridSize':self.gridSize.tolist(),
+        }
+        kwargs.update(**self.kargs)
+        return kwargs
+    
 
     def count_tensorf_params(self, n_component, gridSizes):
         n_params = 0

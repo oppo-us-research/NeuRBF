@@ -58,14 +58,21 @@ class SimpleSampler:
 
 
 @torch.no_grad()
-def export_mesh(args):
-
-    ckpt = torch.load(args.ckpt, map_location=device)
+def load_model_from_ckpt(ckpt_path, model_name):
+    ckpt = torch.load(ckpt_path, map_location=device)
     kwargs = ckpt['kwargs']
     kwargs.update({'device': device})
-    tensorf = eval(args.model_name)(**kwargs)
+    if 'args' in kwargs and 'rbf_config' in kwargs['args']:
+        kwargs['args']['rbf_config']['init_rbf'] = False
+    tensorf = eval(model_name)(**kwargs)
     tensorf.load(ckpt)
+    tensorf.to(device)
+    return tensorf
 
+
+@torch.no_grad()
+def export_mesh(args):
+    tensorf = load_model_from_ckpt(args.ckpt, args.model_name)
     alpha,_ = tensorf.getDenseAlpha()
     convert_sdf_samples_to_ply(alpha.cpu(), f'{args.ckpt[:-3]}.ply',bbox=tensorf.aabb.cpu(), level=0.005)
 
@@ -78,34 +85,26 @@ def render_test(args):
     white_bg = test_dataset.white_bg
     ndc_ray = args.ndc_ray
 
-    if not os.path.exists(args.ckpt):
-        print('the ckpt path does not exists!!')
-        return
-
-    ckpt = torch.load(args.ckpt, map_location=device)
-    kwargs = ckpt['kwargs']
-    kwargs.update({'device': device})
-    tensorf = eval(args.model_name)(**kwargs)
-    tensorf.load(ckpt)
+    tensorf = load_model_from_ckpt(args.ckpt, args.model_name)
 
     logfolder = os.path.dirname(args.ckpt)
     if args.render_train:
         os.makedirs(f'{logfolder}/imgs_train_all', exist_ok=True)
         train_dataset = dataset(args.datadir, split='train', downsample=args.downsample_train, is_stack=True)
-        PSNRs_test, _, _, _ = evaluation(
+        PSNRs_train, _, _, _ = evaluation(
             train_dataset,tensorf, args, renderer, f'{logfolder}/imgs_train_all/',
             N_vis=-1, N_samples=-1, white_bg = white_bg, ndc_ray=ndc_ray,device=device)
-        print(f'======> {args.expname} train all psnr: {np.mean(PSNRs_test)} <========================')
+        print(f'======> {logfolder} train all psnr: {np.mean(PSNRs_train)} <========================')
 
     if args.render_test:
-        os.makedirs(f'{logfolder}/{args.expname}/imgs_test_all', exist_ok=True)
-        evaluation(test_dataset, tensorf, args, renderer, f'{logfolder}/{args.expname}/imgs_test_all/',
+        os.makedirs(f'{logfolder}/imgs_test_all', exist_ok=True)
+        evaluation(test_dataset, tensorf, args, renderer, f'{logfolder}/imgs_test_all/',
                                 N_vis=-1, N_samples=-1, white_bg = white_bg, ndc_ray=ndc_ray,device=device)
 
     if args.render_path:
         c2ws = test_dataset.render_path
-        os.makedirs(f'{logfolder}/{args.expname}/imgs_path_all', exist_ok=True)
-        evaluation_path(test_dataset,tensorf, c2ws, renderer, f'{logfolder}/{args.expname}/imgs_path_all/',
+        os.makedirs(f'{logfolder}/imgs_path_all', exist_ok=True)
+        evaluation_path(test_dataset,tensorf, c2ws, renderer, f'{logfolder}/imgs_path_all/',
                                 N_vis=-1, N_samples=-1, white_bg = white_bg, ndc_ray=ndc_ray,device=device)
 
 
@@ -145,11 +144,7 @@ def reconstruction(args, init_data=None):
 
     t = time.time()
     if args.ckpt is not None:
-        ckpt = torch.load(args.ckpt, map_location=device)
-        kwargs = ckpt['kwargs']
-        kwargs.update({'device':device})
-        tensorf = eval(args.model_name)(**kwargs)
-        tensorf.load(ckpt)
+        tensorf = load_model_from_ckpt(args.ckpt, args.model_name)
     else:
         tensorf = eval(args.model_name)(aabb, reso_cur, device,
                     density_n_comp=n_lamb_sigma, appearance_n_comp=n_lamb_sh, app_dim=args.data_dim_color, near_far=near_far,
@@ -350,16 +345,16 @@ def reconstruction(args, init_data=None):
     if args.render_train:
         os.makedirs(f'{logfolder}/imgs_train_all', exist_ok=True)
         train_dataset = dataset(args.datadir, split='train', downsample=args.downsample_train, is_stack=True)
-        PSNRs_test, _, _, _ = evaluation(
+        PSNRs_train, _, _, _ = evaluation(
             train_dataset,tensorf, args, renderer, f'{logfolder}/imgs_train_all/',
             N_vis=-1, N_samples=-1, white_bg = white_bg, ndc_ray=ndc_ray,device=device,
             save_img=args.save_img, save_video=args.save_video)
-        print(f'======> test all psnr: {np.mean(PSNRs_test)} <========================')
+        print(f'======> train all psnr: {np.mean(PSNRs_train)} <========================')
 
     if args.render_test:
         os.makedirs(f'{logfolder}/imgs_test_all', exist_ok=True)
         PSNRs_test, ssims_test, l_vgg_test, l_alex_test = evaluation(
-            test_dataset,tensorf, args, renderer, f'{logfolder}/imgs_test_all/',
+            test_dataset, tensorf, args, renderer, f'{logfolder}/imgs_test_all/',
             N_vis=-1, N_samples=-1, white_bg = white_bg, ndc_ray=ndc_ray,device=device,
             save_img=args.save_img, save_video=args.save_video)
         summary_writer.add_scalar('test/psnr_all', np.mean(PSNRs_test), global_step=iteration)
@@ -383,16 +378,18 @@ def reconstruction(args, init_data=None):
 
     stats_t = {'t_init': t_init, 't_train': t_train, 't_total': t_init + t_train}
     stats_misc = {'n_iter': args.n_iters, 'batch_size': args.batch_size, 'n_param': n_params}
-    stats_metric = {'psnr': np.mean(PSNRs_test), 'ssim': np.mean(ssims_test), 'lpips_vgg': np.mean(l_vgg_test), 'lpips_alex': np.mean(l_alex_test)}
     print(stats_t)
     print(stats_misc)
-    print(stats_metric)
+    if args.render_test:
+        stats_metric = {'psnr': np.mean(PSNRs_test), 'ssim': np.mean(ssims_test), 'lpips_vgg': np.mean(l_vgg_test), 'lpips_alex': np.mean(l_alex_test)}
+        print(stats_metric)
     
     save_fn = os.path.join(logfolder, 'stats')
     with open(f'{save_fn}.txt', 'w') as f:
         pprint.pprint(stats_t, f, sort_dicts=False)
         pprint.pprint(stats_misc, f, sort_dicts=False)
-        pprint.pprint(stats_metric, f, sort_dicts=False)
+        if args.render_test:
+            pprint.pprint(stats_metric, f, sort_dicts=False)
 
 
 if __name__ == '__main__':
@@ -407,9 +404,9 @@ if __name__ == '__main__':
 
     if args.export_mesh:
         export_mesh(args)
-
-    if args.render_only and (args.render_test or args.render_path):
-        render_test(args)
+    elif args.render_only:
+        if args.render_train or args.render_test or args.render_path:
+            render_test(args)
     else:
         init_data = None
         if args.config_init is not None:

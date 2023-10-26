@@ -119,6 +119,17 @@ NOTE: To reduce GPU memory usage, you can add `--batch_size_init 2048` (tested w
 
 <img src="assets/nerf_syn_lego.png" width="35%"/>
 
+To render images using a trained model, run
+```bash
+python main_nerf.py --config configs/nerf_tensorf/nerf_synthetic.py --data_name lego --ckpt [path_to_checkpoint] --render_only 1 --[what_to_render] 1
+```
+where `[path_to_checkpoint]` is the path to the checkpoint file and `[what_to_render]` can be `render_test` or `render_train`. Note that the training command already conducts `render_test` at the end of training.
+
+To extract mesh from a trained model, run
+```bash
+python main_nerf.py --config configs/nerf_tensorf/nerf_synthetic.py --data_name lego --ckpt [path_to_checkpoint] --export_mesh 1
+```
+
 ### Run on LLFF Dataset
 Download the dataset and unzip to `data`. For example, the path to the room scene should be `data/nerf_llff_data/room`. 
 

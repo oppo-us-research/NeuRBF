@@ -27,7 +27,7 @@ def config_parser(cmd=None, mode='config'):
     parser.add_argument('--downsample_train', type=float, default=1.0)
     parser.add_argument('--downsample_test', type=float, default=1.0)
 
-    parser.add_argument('--model_name', type=str, default='TensorVMSplitRBF')
+    parser.add_argument('--model_name', type=str, default='nerf_tensorf.network.TensorVMSplitRBF')
 
     # loader options
     parser.add_argument("--batch_size", type=int, default=4096)
@@ -91,12 +91,11 @@ def config_parser(cmd=None, mode='config'):
 
 
 
-    parser.add_argument("--ckpt", type=str, default=None,
-                        help='specific weights npy file to reload for coarse network')
+    parser.add_argument("--ckpt", type=str, default=None, help='path to model checkpoint')
     parser.add_argument("--render_only", type=int, default=0)
-    parser.add_argument("--render_test", type=int, default=0)
-    parser.add_argument("--render_train", type=int, default=0)
-    parser.add_argument("--render_path", type=int, default=0)
+    parser.add_argument("--render_test", type=int, default=None)
+    parser.add_argument("--render_train", type=int, default=None)
+    parser.add_argument("--render_path", type=int, default=None)
     parser.add_argument("--export_mesh", type=int, default=0)
 
     # rendering options
@@ -150,11 +149,13 @@ def config_parser(cmd=None, mode='config'):
         cfg = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(cfg)
         config = OmegaConf.create(cfg.config)
+        if args.render_only:
+            config.render_test = 0
 
         # Override from config into argparse
         for k, v in config.items():
             # Keep certain args if they are set in cli
-            if k in ['data_name', 'batch_size_init'] and getattr(args, k) is not None:
+            if k in ['data_name', 'batch_size_init', 'render_train', 'render_test', 'render_path'] and getattr(args, k) is not None:
                 continue
             setattr(args, k, v)
 
@@ -165,13 +166,16 @@ def config_parser(cmd=None, mode='config'):
             if 'init_data_fp' in args['rbf_config']:
                 args['rbf_config']['init_data_fp'] = args['rbf_config']['init_data_fp'].replace('data_name', args['data_name'])
 
-    # Add version id
-    if args.add_version_id:
-        exp_list = glob.glob(f'{args["basedir"]}/{args["expname"]}-v*'.replace('[', '[[]'))
-        if len(exp_list) == 0:
-            vid = 0
-        else:
-            vid = max([int(v.split(f'{args["expname"]}-v')[-1]) for v in exp_list]) + 1
-        args["expname"] += f'-v{vid}'
+    if args.ckpt is None:
+        # Add version id
+        if args.add_version_id:
+            exp_list = glob.glob(f'{args["basedir"]}/{args["expname"]}-v*'.replace('[', '[[]'))
+            if len(exp_list) == 0:
+                vid = 0
+            else:
+                vid = max([int(v.split(f'{args["expname"]}-v')[-1]) for v in exp_list]) + 1
+            args["expname"] += f'-v{vid}'
+    else:
+        args["expname"] = args.ckpt.split('/')[-2]
 
     return args
