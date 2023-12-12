@@ -147,6 +147,9 @@ where `[model_folder]` is the path to the folder that contains the trained model
 
 <img src="assets/nerf_llff_room.png" width="50%"/>
 
+## Acknowledgement
+We sincerely thank the authors of the following repos, whose work has been referenced in our released codes: [torch-ngp](https://github.com/ashawkey/torch-ngp), [TensoRF](https://github.com/apchenstu/TensoRF), [nrff](https://github.com/imkanghan/nrff), [K-Planes](https://github.com/sarafridov/K-Planes), [MINER_pl](https://github.com/kwea123/MINER_pl), and [siren](https://github.com/vsitzmann/siren).
+
 ## Citation
 If you find our work useful, please consider citing:
 ```BibTeX
